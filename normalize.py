@@ -1,6 +1,7 @@
 import torch
 
 def normalize_text(tokenizer, model, user_input):
+    user_input = user_input.lower()
     inputs = tokenizer(user_input, return_tensors='pt')
     with torch.no_grad():
         outputs = model.generate(

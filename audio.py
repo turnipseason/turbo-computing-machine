@@ -5,7 +5,8 @@ import requests
 import zipfile
 import wave
 import moviepy.editor as mp
-
+from normalize import normalize_text
+import streamlit as st
 
 class AudioProcessor:
     def __init__(self, vosk_model_path):
@@ -75,3 +76,28 @@ class AudioProcessor:
         self.transcription += result.get('text', '')
 
         return self.transcription.strip()
+
+    def transcribe(self, transcription, tokenizer, model):
+        if transcription:
+            decoded_output = normalize_text(tokenizer, model, transcription)
+            st.markdown(f"<span style='font-size:30px'>Нормализованный текст</span>", unsafe_allow_html=True)
+            st.markdown(f"<span style='font-size:30px'>{decoded_output}</span>", unsafe_allow_html=True)
+        else:
+            st.write("Модель VOSK не смогла распознать речь в вашем файле!", font_size='20')
+
+    def process_uploaded_file(self, uploaded_file, tokenizer, model):
+        audio_file_path = self.get_audio(uploaded_file)
+        if audio_file_path:
+            transcription = self.process_recording(audio_file_path)
+            st.markdown(f"<span style='font-size:30px'>Транскрибация моделью VOSK:</span>", unsafe_allow_html=True)
+            st.markdown(f"<span style='font-size:30px'>{transcription}</span>", unsafe_allow_html=True)
+            self.transcribe(transcription, tokenizer, model)
+        else:
+            st.write("Неподдерживаемый формат файла", font_size='20')
+
+    def process_recorded_audio(self, audio_data, tokenizer, model):
+        self.save_audio(audio_data)
+        transcription = self.process_recording("recorded_audio.wav")
+        st.write("Транскрибация моделью VOSK:", font_size='20')
+        st.write(transcription, font_size='20')
+        self.transcribe(transcription, tokenizer, model)

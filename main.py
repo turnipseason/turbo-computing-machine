@@ -15,53 +15,39 @@ output_dir = 'turnipseason/latext5'
 model = AutoModelForSeq2SeqLM.from_pretrained(output_dir)
 tokenizer = AutoTokenizer.from_pretrained(output_dir)
 
-st.header("Обработка текста")
+
+st.set_page_config(
+    page_title="LaTeXT5_DEMO",
+    page_icon=":four_leaf_clover:",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
+
+def loading_spinner(func):
+    with st.spinner("Ваш запрос обрабатывается..."):
+        func()
+
+st.header("Работа с текстом")
 user_input = st.text_area('Введите текст для нормализации:')
 
 if st.button('Нормализовать текст'):
-    if user_input:
-        decoded_output = normalize_text(tokenizer, model, user_input)
-        st.write('Нормализованный текст:')
-        st.write(decoded_output)
-    else:
-        st.write('Пожалуйста, введите текст.')
+    loading_spinner(lambda: transcriber.transcribe(user_input, tokenizer, model))
 
-
-st.header("Обработка аудио/видео файлов")
+st.header("Работа с аудио/видео файлами")
 uploaded_file = st.file_uploader("Загрузите аудио или видео файл", type=["mp3", "mp4", "wav"])
 
 if uploaded_file is not None:
+    if uploaded_file.type.startswith('audio'):
+        st.audio(uploaded_file, format='audio/wav')
+    elif uploaded_file.type.startswith('video'):
+        st.video(uploaded_file, format='video/mp4')
     if st.button('Нормализовать аудио'):
-        audio_file_path = transcriber.get_audio(uploaded_file)
-        if audio_file_path:
-            transcription = transcriber.process_recording(audio_file_path)
-            st.write("Транскрибация моделью VOSK:")
-            st.write(transcription)
+        loading_spinner(lambda: transcriber.process_uploaded_file(uploaded_file, tokenizer, model))
 
-            if transcription:
-                decoded_output = normalize_text(tokenizer, model, transcription)
-                st.write("Нормализованный текст:")
-                st.write(decoded_output)
-            else:
-                st.write("Модель VOSK не смогла распознать речь в вашем файле!")
-        else:
-            st.write("Неподдерживаемый формат файла")
 
-st.header("Обработка произвольной записи голоса:")
-
+st.header("Работа с произвольной записью голоса:")
 recorded_audio=st_audiorec()
 
 if recorded_audio is not None:
     if st.button('Нормализовать запись голоса'):
-        transcriber.save_audio(recorded_audio)
-        transcription = transcriber.process_recording("recorded_audio.wav")
-        st.write("Транскрибация моделью VOSK:")
-        st.write(transcription)
-
-        if transcription:
-            decoded_output = normalize_text(tokenizer, model, transcription)
-            st.write("Нормализованный текст:")
-            st.write(decoded_output)
-        else:
-            st.write("Модель VOSK не смогла распознать речь в вашем файле!")
-
+        loading_spinner(lambda: transcriber.process_recorded_audio(recorded_audio, tokenizer, model))
